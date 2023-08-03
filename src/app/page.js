@@ -36,7 +36,7 @@ const Home = () => {
 
       // Tableaux qui regroupe mes amis direct
       const primaryFriends = [];
-      // Tableaux qui regroupe mes amis de 2ème niveau "ami de mon ami"
+      // Tableaux qui regroupe toutes mes relations transitifs
       const allMyfriend = [];
 
       // Partie pour récupérer mes amis direct
@@ -46,36 +46,55 @@ const Home = () => {
           line.includes("Je suis amie avec")
         ) {
           const friend = line.split("avec ")[1];
-          primaryFriends.push(friend);
+          allMyfriend.push(friend);
         } else if (
           line.includes("est amie avec moi") ||
           line.includes("est ami avec moi")
         ) {
           const friend = line.split(" est")[0];
-          primaryFriends.push(friend);
+          allMyfriend.push(friend);
         }
       });
 
-      // Partie pour récupérer mes amis de 2ème niveau "ami de mon ami"
-      lines.forEach((line) => {
-        if (primaryFriends.length > 0) {
-          const allMyfriendRegex1 = new RegExp(
-            "est (ami|amie) avec (" + primaryFriends.join("|") + ")"
-          );
-          const allMyfriendRegex2 = new RegExp(
-            primaryFriends.join("|") + " est (ami|amie) avec"
-          );
+      // Partie pour récupérer toutes mes relations transitifs
+      let friendAdded = false;
 
-          if (allMyfriendRegex1.test(line)) {
-            const friendWithMyFriend1 = line.split(" est")[0];
-            allMyfriend.push(friendWithMyFriend1);
+      function processLines() {
+        lines.forEach((line) => {
+          if (allMyfriend.length > 0) {
+            const allMyfriendRegex1 = new RegExp(
+              "est (ami|amie) avec (" + allMyfriend.join("|") + ")"
+            );
+            const allMyfriendRegex2 = new RegExp(
+              allMyfriend.join("|") + " est (ami|amie) avec"
+            );
+
+            if (allMyfriendRegex1.test(line)) {
+              const friendWithMyFriend1 = line.split(" est")[0];
+              if (!allMyfriend.includes(friendWithMyFriend1)) {
+                allMyfriend.push(friendWithMyFriend1);
+                friendAdded = true;
+                return;
+              }
+            }
+            if (allMyfriendRegex2.test(line)) {
+              const friendWithMyFriend2 = line.split("avec ")[1];
+              if (!allMyfriend.includes(friendWithMyFriend2)) {
+                allMyfriend.push(friendWithMyFriend2);
+                friendAdded = true;
+                return;
+              }
+            }
           }
-          if (allMyfriendRegex2.test(line)) {
-            const friendWithMyFriend2 = line.split("avec ")[1];
-            allMyfriend.push(friendWithMyFriend2);
-          }
+        });
+
+        if (friendAdded) {
+          friendAdded = false;
+          processLines();
         }
-      });
+      }
+
+      processLines();
 
       // Partie affichage de la réponse
       const isMyFriend =
